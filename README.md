@@ -1,27 +1,41 @@
 # Simulador e Gestão de Mão de Obra (Headcount)
 
-Aplicação web interna para planejamento de turnos, alocação de máquinas (Termoformagem e Extrusão), controle diário de absenteísmo e gestão de equipes.
+Aplicação web interna desenvolvida para planejamento operacional de turnos, alocação inteligente de máquinas (Termoformagem e Extrusão), controle diário de absenteísmo e gestão de equipes em tempo real.
 
-* **Acesso ao sistema:** [https://cavera360jm-cmd.github.io/headcount/](https://cavera360jm-cmd.github.io/headcount/)
+* **Acesso ao sistema (Ambiente Atual):** [https://cavera360jm-cmd.github.io/headcount/](https://cavera360jm-cmd.github.io/headcount/)
+
+---
+
+## Stack Tecnológica e Ambiente de Desenvolvimento
+
+O sistema foi projetado para ser **leve, transparente e de fácil manutenção**, sem depender de frameworks pesados, servidores complexos ou pacotes externos ocultos:
+
+* **Ambiente de Desenvolvimento (VS Code):** Todo o código foi escrito e estruturado no **Visual Studio Code**, utilizando apenas tecnologias web nativas padrão de mercado.
+* **Frontend Puro (Zero Dependências / Sem Build):** Desenvolvido exclusivamente com **HTML5, CSS3 e JavaScript (ES6+)** puro (*Vanilla JS*). Não foram instalados pacotes `npm`, bibliotecas de terceiros não auditadas ou compiladores — o navegador executa exatamente o código-fonte legível presente neste repositório.
+* **Hospedagem Estática (GitHub & GitHub Pages):**
+  * **GitHub:** Utilizado como repositório de versionamento do código-fonte, garantindo histórico completo de alterações.
+  * **GitHub Pages (Plano Gratuito):** Serviço de hospedagem de arquivos estáticos que publica a interface diretamente via HTTPS. Ele entrega apenas os arquivos visuais (`HTML`, `CSS` e `JS`) para o navegador do usuário, sem executar processamento de backend nem armazenar dados de colaboradores.
+* **Backend e Banco de Dados (Supabase — Plano Gratuito / Free Tier):**
+  * Plataforma *Backend-as-a-Service (BaaS)* baseada em **PostgreSQL** gerenciado, utilizada em sua **versão gratuita (Free Tier)** — sem custo de licenciamento para a operação atual.
+  * Fornece autenticação de usuários, API REST automática via HTTPS, sincronização em tempo real (*Realtime Channels*) e controle de acesso por linha (*Row Level Security*) diretamente no banco de dados.
 
 ---
 
 ## Arquitetura e Separação de Dados
 
-O sistema foi estruturado com separação estrita entre o **código-fonte da interface** e o **armazenamento dos dados operacionais**, garantindo que nenhuma informação pessoal fique exposta publicamente.
+O sistema opera com separação estrita entre o **código-fonte da interface** e o **armazenamento dos dados operacionais**, garantindo que nenhuma informação pessoal fique exposta publicamente:
 
-1. **Hospedagem da Aplicação (GitHub Pages):**
-   * Este repositório contém **exclusivamente os arquivos estáticos da interface** (`index.html`, `style.css`, `melhorias.css`, `app.js`, `melhorias.js` e `nuvem.js`).
-   * **Zero dados pessoais no código:** Nenhuma lista de colaboradores, nomes, matrículas, cargos, históricos de faltas ou senhas de acesso são armazenados neste repositório.
-
-2. **Banco de Dados e Autenticação (Supabase):**
-   * Todos os dados operacionais (`colaboradores`, `setores`, `faltas` e `config_sim`) residem exclusivamente em banco de dados PostgreSQL gerenciado no Supabase, protegido por criptografia em trânsito (HTTPS/TLS) e em repouso.
+1. **Camada de Apresentação (GitHub Pages):**
+   * Contém **exclusivamente os arquivos estáticos da interface** (`index.html`, `style.css`, `melhorias.css`, `app.js`, `melhorias.js` e `nuvem.js`).
+   * **Zero dados pessoais no código:** Nenhuma lista de colaboradores, nomes, cargos, históricos de faltas ou senhas de acesso existem neste repositório.
+2. **Camada de Dados e Autenticação (Supabase PostgreSQL):**
+   * Todos os dados operacionais (`colaboradores`, `setores`, `faltas` e `config_sim`) residem exclusivamente no banco PostgreSQL do Supabase, protegidos por criptografia em trânsito (TLS/HTTPS) e em repouso.
 
 ---
 
 ## Controles de Segurança e Conformidade com a LGPD
 
-Para atender às diretrizes de segurança da informação e à **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**, as seguintes camadas de proteção foram configuradas:
+Para atender às diretrizes de segurança da informação e à **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**, as seguintes camadas de proteção foram implementadas:
 
 * **Minimização de Dados (Art. 6º, III - LGPD):** O banco armazena apenas os dados estritamente necessários para a alocação operacional nos turnos (nome, cargo, equipe, setor, status operacional e datas de movimentação), sem coleta de documentos pessoais sensíveis (CPF, RG, endereço, telefone ou dados bancários).
 * **Controle de Acesso e Autenticação Fechada:**
@@ -38,26 +52,33 @@ Para atender às diretrizes de segurança da informação e à **Lei Geral de Pr
 
 ---
 
-## Roadmap de Evolução e Migração Corporativa (Sugestões para TI)
+## Guia de Migração para o Ecossistema Microsoft (Azure + Domínio Ajover)
 
-Embora a arquitetura atual já opere com isolamento de dados, RLS e restrição de domínio, as etapas abaixo representam caminhos recomendados caso a equipe de TI deseje internalizar 100% da infraestrutura dentro do ecossistema **Microsoft** da Ajover:
+Como o projeto foi construído em **HTML, CSS e JavaScript puro** sobre **PostgreSQL**, ele não possui dependência proprietária (*vendor lock-in*) e pode ser migrado integralmente para a nuvem **Microsoft Azure** da Ajover com endereço corporativo próprio (ex.: `https://headcount.ajover.com`).
 
-### 1. Autenticação Única Corporativa (SSO com Microsoft Entra ID)
-* **O que muda:** Substituir o login via e-mail/senha do Supabase pela autenticação nativa Microsoft 365 da empresa (OAuth 2.0 / OpenID Connect).
-* **Ganhos de segurança:** Uso obrigatório do MFA corporativo já configurado pela TI, fim da gestão paralela de senhas e bloqueio imediato do sistema caso o colaborador seja desligado no Active Directory / Entra ID.
-* **Requisito:** Criação de um *App Registration* (Single Tenant) no Microsoft Entra ID pela TI.
+### Arquitetura Alvo na Microsoft
 
-### 2. Migração de Hospedagem e Banco para a Nuvem Corporativa (Azure / Microsoft 365)
-Caso a política interna exija que os dados residam exclusivamente em servidores gerenciados pela Ajover, o projeto pode ser migrado para o ambiente Microsoft sem reescrever as regras de negócio da interface:
-
-| Camada Atual | Opção 1: Azure Cloud (Recomendada para escala) | Opção 2: Microsoft 365 / Power Platform |
+| Camada | Solução Atual (Custo Zero) | Solução Corporativa Microsoft (Azure) |
 | :--- | :--- | :--- |
-| **Hospedagem Web (Frontend)** | **Azure Static Web Apps** (com autenticação nativa Entra ID integrada e domínio interno `headcount.ajover.com`) | **SharePoint Online** (hospedagem interna restrita aos membros do site da equipe) |
-| **Banco de Dados** | **Azure Database for PostgreSQL** ou **Azure SQL Database** (mantendo a mesma estrutura relacional e políticas de acesso) | **Microsoft Dataverse** ou **SharePoint Lists** (governança nativa dentro do tenant Microsoft 365) |
-| **Camada de API / Regras** | **Azure Functions** (endpoints protegidos por token corporativo) | **Power Automate** / APIs internas |
+| **Hospedagem Frontend** | GitHub Pages | **Azure Static Web Apps** (ou **Azure App Service**) |
+| **Domínio & Certificado SSL** | `*.github.io` | **Domínio Corporativo Ajover** (`headcount.ajover.com`) com SSL gerenciado |
+| **Autenticação / MFA** | Supabase Auth (`@ajover.com`) | **Microsoft Entra ID (Azure AD) — Single Sign-On (SSO)** |
+| **Banco de Dados** | Supabase (PostgreSQL) | **Azure Database for PostgreSQL** (Flexible Server) |
 
-### 3. Auditoria e Logs de Alteração (Trilha de Auditoria)
-* **Sugestão:** Adicionar colunas de auditoria (`updated_by`, `updated_at`) e triggers de histórico nas tabelas `colaboradores` e `faltas` para registrar qual usuário `@ajover.com` realizou cada movimentação de quadro ou lançamento diário.
+### Passo a Passo Técnico para Implantação pela TI
+
+1. **Publicação no Azure Static Web Apps e Domínio Customizado (`headcount.ajover.com`):**
+   * Criar um recurso **Azure Static Web Apps** conectado ao repositório do projeto (ou via upload direto dos 6 arquivos estáticos).
+   * Na aba **Custom domains** do Azure Static Web Apps, adicionar o subdomínio desejado (ex.: `headcount.ajover.com`).
+   * No servidor DNS da Ajover, criar um registro **`CNAME`** apontando `headcount.ajover.com` para o hostname gerado pelo Azure (`*.azurestaticapps.net`). O Azure provisiona e renova o certificado HTTPS/TLS automaticamente.
+2. **Ativação do Login Corporativo (Microsoft Entra ID / SSO):**
+   * Registrar a aplicação no **Microsoft Entra ID → App registrations** (configurado como *Single Tenant — Ajover only*).
+   * Configurar a autenticação nativa do Azure Static Web Apps (`staticwebapp.config.json`) ou integrar via OAuth 2.0, garantindo que apenas colaboradores ativos no diretório `@ajover.com` com o MFA corporativo da empresa acessem a página.
+3. **Migração do Banco de Dados para o Azure:**
+   * Provisionar uma instância **Azure Database for PostgreSQL** na assinatura corporativa da Ajover.
+   * Exportar o schema (tabelas `colaboradores`, `setores`, `faltas`, `config_sim` e políticas RLS) e os dados do Supabase via `pg_dump` e restaurar no PostgreSQL do Azure, atualizando apenas o endpoint de conexão em `nuvem.js`.
+4. **Trilha de Auditoria (Opcional Recomendado):**
+   * Adicionar colunas `updated_by` e `updated_at` nas tabelas operacionais para registrar automaticamente qual usuário `@ajover.com` realizou cada alteração de turno ou cadastro.
 
 ---
 
