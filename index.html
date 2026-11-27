@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07569b">
+  <title>Darnel | Gestão de Mão de Obra</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="melhorias.css">   <!-- adicionar -->
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand-lockup">
+          <div class="brand-symbol">D</div>
+          <div class="brand-copy">
+            <span class="brand-name">DARNEL</span>
+            <span class="brand-divider"></span>
+            <span class="brand-app">GESTÃO INDUSTRIAL</span>
+          </div>
+        </div>
+        <div class="header-title">
+          <h1>Gestão de Mão de Obra</h1>
+          <p>Planejamento operacional · Extrusão e Termoformagem</p>
+        </div>
+        <div class="header-tools">
+
+    <div class="date-box">
+        <span>DATA DE CONFERÊNCIA</span>
+        <strong id="data-conferencia">Carregando...</strong>
+    </div>
+
+    <button class="btn btn-header" id="export-json-btn" type="button">
+        Exportar JSON
+    </button>
+
+    <label class="btn btn-header" for="import-json-input">
+        Importar JSON
+    </label>
+
+    <button class="btn btn-header" id="logout-btn" type="button">
+        Sair
+    </button>
+
+    <input type="file" id="import-json-input" accept=".json,application/json" hidden>
+</div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="intro-row">
+        <div>
+          <div class="eyebrow">FÁBRICA BRASIL · CURITIBA</div>
+          <h2>Painel de controle operacional</h2>
+          <p>Visão do quadro nominal, mão de obra disponível e programação das máquinas por equipe.</p>
+        </div>
+        <div class="live-indicator"><span></span> Dados locais do arquivo JSON</div>
+      </section>
+
+      <nav class="tabs" aria-label="Navegação principal">
+        <button class="tab-btn active" data-tab="layout" type="button">Simulador operacional</button>
+        <button class="tab-btn" data-tab="dashboard" type="button">Dashboard geral</button>
+        <button class="tab-btn" data-tab="equipes" type="button">Gestão de equipes</button>
+      </nav>
+
+      <!-- SIMULADOR -->
+      <section class="tab-panel active" id="panel-layout" data-tab-panel="layout">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">PROGRAMAÇÃO DO TURNO</span>
+            <h2>Simulador de mão de obra</h2>
+            <p>Configure a prioridade, os recursos e a condição operacional de cada máquina.</p>
+          </div>
+        </div>
+
+        <section class="panel team-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Equipe de produção</h3>
+              <p>Selecione a equipe que será analisada.</p>
+            </div>
+            <span class="panel-tag">A · B · C · D</span>
+          </div>
+          <div class="team-pills" id="team-pills">
+            <button class="pill active" data-team="A" type="button">Equipe A</button>
+            <button class="pill" data-team="B" type="button">Equipe B</button>
+            <button class="pill" data-team="C" type="button">Equipe C</button>
+            <button class="pill" data-team="D" type="button">Equipe D</button>
+          </div>
+        </section>
+
+        <!-- FILTRO DE SETOR -->
+        <section class="sector-filter-bar" aria-label="Filtro de setor">
+          <div class="sector-filter-copy">
+            <span class="eyebrow">VISUALIZAÇÃO</span>
+            <strong>Filtrar áreas do simulador</strong>
+            <small>Alterne entre todas as áreas, somente Termoformagem ou somente Extrusão.</small>
+          </div>
+          <div class="sector-filter" id="sector-filter" role="group" aria-label="Selecionar setor">
+            <button class="sector-filter-btn active" data-sector-filter="all" type="button" aria-pressed="true">Todas as áreas</button>
+            <button class="sector-filter-btn" data-sector-filter="term" type="button" aria-pressed="false">Só Termoformagem</button>
+            <button class="sector-filter-btn" data-sector-filter="ext" type="button" aria-pressed="false">Só Extrusão</button>
+          </div>
+        </section>
+
+        <section class="panel options-panel" data-sector-block="term">
+          <div class="panel-heading">
+            <div>
+              <h3>Parâmetros de simulação</h3>
+              <p>Defina quais recursos entram no cálculo operacional.</p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="reset-priority-btn" type="button">Restaurar configuração das máquinas</button>
+          </div>
+          <div class="option-list">
+            <label class="check-option">
+              <input type="checkbox" id="chk-apenas-presentes" checked disabled>
+              <span class="check-ui"></span>
+              <span>
+                <b>Regras de status obrigatórias</b>
+                <small>Férias e status impeditivos nunca entram na MO operacional.</small>
+              </span>
+            </label>
+            <label class="check-option">
+              <input type="checkbox" id="chk-moinhos" checked>
+              <span class="check-ui"></span>
+              <span>
+                <b>Reservar embaladores para os moinhos</b>
+                <small>Reserva de 2 colaboradores por turno.</small>
+              </span>
+            </label>
+            <label class="check-option">
+              <input type="checkbox" id="chk-lider-backup">
+              <span class="check-ui"></span>
+              <span>
+                <b>Permitir Operador Líder como backup</b>
+                <small>Utiliza o líder somente quando faltar operador.</small>
+              </span>
+            </label>
+          </div>
+          <div class="notice">
+            <strong>Regra operacional:</strong>
+            marcar uma máquina como “Liberada para operar” aumenta sua prioridade na alocação, mas ela só será considerada rodando se houver mão de obra suficiente. “Parada manual” retira a máquina da simulação.
+          </div>
+        </section>
+
+        <div class="section-heading compact" data-sector-block="term">
+          <div>
+            <span class="eyebrow">RECURSOS DA EQUIPE</span>
+            <h2>Disponibilidade para o turno</h2>
+          </div>
+        </div>
+        <div class="resource-grid" id="resource-summary-grid" data-sector-block="term"></div>
+
+        <div class="section-heading compact machine-heading" data-sector-block="term">
+          <div>
+            <span class="eyebrow">TERMOFORMAGEM</span>
+            <h2>Configuração e status das máquinas</h2>
+            <p>Edite prioridade, quantidade de embaladores e status operacional. As alterações ficam salvas neste navegador por equipe.</p>
+          </div>
+          <span class="count-tag">10 MÁQUINAS</span>
+        </div>
+        <div class="machine-grid" id="tf-grid" data-sector-block="term">
+          <div class="empty-state">Carregando simulação...</div>
+        </div>
+
+        <div class="section-heading compact" data-sector-block="ext">
+          <div>
+            <span class="eyebrow">EXTRUSÃO</span>
+            <h2>Quadro de colaboradores</h2>
+            <p id="ext-gestor-label">Gestor não informado</p>
+          </div>
+          <span class="count-tag" id="ext-status-badge">Carregando...</span>
+        </div>
+        <section class="panel" data-sector-block="ext">
+          <div class="panel-heading">
+            <h3 id="ext-team-label">Equipe A</h3>
+          </div>
+          <div class="employee-grid" id="ext-grid">
+            <div class="empty-state">Carregando colaboradores...</div>
+          </div>
+        </section>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section class="tab-panel" id="panel-dashboard" data-tab-panel="dashboard" hidden>
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">VISÃO CONSOLIDADA</span>
+            <h2>Dashboard geral</h2>
+            <p>Comparativo de headcount nominal e mão de obra disponível nas equipes A, B, C e D.</p>
+          </div>
+        </div>
+
+        <div class="section-heading compact">
+          <div><h2>Indicadores · Termoformagem</h2></div>
+        </div>
+        <div class="kpi-grid" id="dashboard-kpis"></div>
+
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Disponibilidade por equipe</h3>
+              <p>Headcount nominal inclui colaboradores em férias; MO disponível exclui férias e demais status impeditivos.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="table-status-equipe">
+              <thead>
+                <tr>
+                  <th>Equipe</th>
+                  <th>MO disponível</th>
+                  <th>Headcount nominal</th>
+                  <th>Meta</th>
+                  <th>Vagas</th>
+                  <th>Indisponíveis</th>
+                </tr>
+              </thead>
+              <tbody><tr><td colspan="6">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Quadro ideal · Termoformagem</h3>
+              <p>Comparação da mão de obra disponível com a meta cadastrada.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="table-termo-ideal">
+              <tbody><tr><td>Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Quadro ideal · Extrusão</h3>
+              <p>Comparação da mão de obra disponível com a meta cadastrada.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="table-ext-ideal">
+              <tbody><tr><td>Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel status-legend">
+          <div class="panel-heading">
+            <div>
+              <h3>Critérios de contagem de status</h3>
+              <p>Critério utilizado pelo painel para separar quadro nominal de disponibilidade operacional.</p>
+            </div>
+          </div>
+          <div class="legend-columns">
+            <div>
+              <h4 class="legend-title positive">Conta no headcount e na MO disponível</h4>
+              <p>Ativo · PCD · Em Experiência · Alerta de Faltas · Supervisor · Operador Líder · Temporário · Treinamento · Mudança de Setor</p>
+            </div>
+            <div>
+              <h4 class="legend-title warning">Conta no headcount, mas não na MO disponível</h4>
+              <p>Férias</p>
+            </div>
+            <div>
+              <h4 class="legend-title negative">Não conta no headcount nem na MO disponível</h4>
+              <p>Dispensa/Absenteísmo · Restrição · Falta Reposição · Afastado - INSS · Afastada - Gestante · Aumento de Quadro · Vai Entrar · Vaga Aberta</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- GESTÃO DE EQUIPES -->
+      <section class="tab-panel" id="panel-equipes" data-tab-panel="equipes" hidden>
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">CADASTRO E CONSULTA</span>
+            <h2>Gestão de equipes</h2>
+            <p>Edite gestores, metas, totais por turno e cadastros de colaboradores. Exporte o JSON para persistir as alterações.</p>
+          </div>
+          <button class="btn btn-primary" id="add-colab-btn" type="button">+ Adicionar colaborador</button>
+        </div>
+
+        <section class="panel team-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Equipe selecionada</h3>
+              <p>Escolha a equipe para consultar o quadro.</p>
+            </div>
+          </div>
+          <div class="team-pills" id="edit-team-pills">
+            <button class="pill active" data-team="A" type="button">Equipe A</button>
+            <button class="pill" data-team="B" type="button">Equipe B</button>
+            <button class="pill" data-team="C" type="button">Equipe C</button>
+            <button class="pill" data-team="D" type="button">Equipe D</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading editor-toolbar">
+            <div>
+              <h3>Colaboradores cadastrados</h3>
+              <p>Pesquisa por nome, cargo, status ou setor.</p>
+            </div>
+            <input type="search" id="search-colab" class="input-search" placeholder="Buscar colaborador...">
+          </div>
+          <div id="equipes-editor-container">
+            <div class="empty-state">Carregando equipes...</div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>DARNEL</span>
+      <span>Gestão Industrial · Planejamento de Mão de Obra</span>
+      <span>Uso interno</span>
+    </footer>
+  </div>
+
+  <!-- MODAL DE CADASTRO -->
+  <div class="modal" id="modal-add" hidden>
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">CADASTRO DE PESSOAS</span>
+          <h3 id="modal-title">Adicionar colaborador</h3>
+          <p>Cadastro para <strong id="modal-team-name">Equipe A</strong></p>
+        </div>
+        <button class="modal-close" id="close-modal-btn" type="button" aria-label="Fechar">×</button>
+      </div>
+
+      <form id="form-add-colab">
+        <div class="form-group">
+          <label for="new-setor">Setor</label>
+          <select id="new-setor" required>
+            <option value="TERMOFORMAGEM">TERMOFORMAGEM</option>
+            <option value="EXTRUSÃO">EXTRUSÃO</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="new-cargo">Cargo</label>
+          <input type="text" id="new-cargo" placeholder="Ex.: Auxiliar de Produção" required>
+        </div>
+
+        <div class="form-group">
+          <label for="new-nome">Nome do colaborador</label>
+          <input type="text" id="new-nome" placeholder="Nome completo" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="new-status">Status</label>
+            <select id="new-status" required><option value="Ativo">Ativo</option></select>
+          </div>
+          <div class="form-group">
+            <label for="new-admissao">Data de admissão</label>
+            <input type="date" id="new-admissao">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="new-dt-saida">Data de saída (se aplicável)</label>
+          <input type="date" id="new-dt-saida">
+        </div>
+
+        <div class="form-group">
+          <label for="new-obs">Observações</label>
+          <textarea id="new-obs" rows="3" placeholder="Informações adicionais (opcional)"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="cancel-modal-btn" type="button">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Salvar colaborador</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script src="melhorias.js"></script>
+<script src="nuvem.js"></script>
+</body>
+</html>
