@@ -1,84 +1,63 @@
-# Simulador e Gestão de Mão de Obra (Headcount)
+# Headcount & Simulador de Turnos — Arquitetura, Segurança (LGPD) e Guia de Evolução Azure
 
-Aplicação web interna desenvolvida para planejamento operacional de turnos, alocação inteligente de máquinas (Termoformagem e Extrusão), controle diário de absenteísmo e gestão de equipes em tempo real.
+Aplicação web interna criada para facilitar o planejamento diário de turnos, a distribuição de pessoas nas máquinas (Termoformagem e Extrusão), o controle de faltas e a gestão das equipes em tempo real.
 
-* **Acesso ao sistema (Ambiente Atual):** [https://cavera360jm-cmd.github.io/headcount/](https://cavera360jm-cmd.github.io/headcount/)
-
----
-
-## Stack Tecnológica e Ambiente de Desenvolvimento
-
-O sistema foi projetado para ser **leve, transparente e de fácil manutenção**, sem depender de frameworks pesados, servidores complexos ou pacotes externos ocultos:
-
-* **Ambiente de Desenvolvimento (VS Code):** Todo o código foi escrito e estruturado no **Visual Studio Code**, utilizando apenas tecnologias web nativas padrão de mercado.
-* **Frontend Puro (Zero Dependências / Sem Build):** Desenvolvido exclusivamente com **HTML5, CSS3 e JavaScript (ES6+)** puro (*Vanilla JS*). Não foram instalados pacotes `npm`, bibliotecas de terceiros não auditadas ou compiladores — o navegador executa exatamente o código-fonte legível presente neste repositório.
-* **Hospedagem Estática (GitHub & GitHub Pages):**
-  * **GitHub:** Utilizado como repositório de versionamento do código-fonte, garantindo histórico completo de alterações.
-  * **GitHub Pages (Plano Gratuito):** Serviço de hospedagem de arquivos estáticos que publica a interface diretamente via HTTPS. Ele entrega apenas os arquivos visuais (`HTML`, `CSS` e `JS`) para o navegador do usuário, sem executar processamento de backend nem armazenar dados de colaboradores.
-* **Backend e Banco de Dados (Supabase — Plano Gratuito / Free Tier):**
-  * Plataforma *Backend-as-a-Service (BaaS)* baseada em **PostgreSQL** gerenciado, utilizada em sua **versão gratuita (Free Tier)** — sem custo de licenciamento para a operação atual.
-  * Fornece autenticação de usuários, API REST automática via HTTPS, sincronização em tempo real (*Realtime Channels*) e controle de acesso por linha (*Row Level Security*) diretamente no banco de dados.
+* **Acesso ao sistema:** [https://cavera360jm-cmd.github.io/headcount/](https://cavera360jm-cmd.github.io/headcount/)
 
 ---
 
-## Arquitetura e Separação de Dados
+## Como o Sistema Foi Feito e Onde Ele Roda
 
-O sistema opera com separação estrita entre o **código-fonte da interface** e o **armazenamento dos dados operacionais**, garantindo que nenhuma informação pessoal fique exposta publicamente:
+O projeto foi desenhado para ser simples, leve, fácil de manter e **sem custo de licenciamento** no momento:
 
-1. **Camada de Apresentação (GitHub Pages):**
-   * Contém **exclusivamente os arquivos estáticos da interface** (`index.html`, `style.css`, `melhorias.css`, `app.js`, `melhorias.js` e `nuvem.js`).
-   * **Zero dados pessoais no código:** Nenhuma lista de colaboradores, nomes, cargos, históricos de faltas ou senhas de acesso existem neste repositório.
-2. **Camada de Dados e Autenticação (Supabase PostgreSQL):**
-   * Todos os dados operacionais (`colaboradores`, `setores`, `faltas` e `config_sim`) residem exclusivamente no banco PostgreSQL do Supabase, protegidos por criptografia em trânsito (TLS/HTTPS) e em repouso.
+* **Onde o código foi escrito (VS Code):** Todo o sistema foi construído no editor Visual Studio Code, usando apenas a base padrão da internet (HTML, CSS e JavaScript puro), sem instalar pacotes extras ou programas pesados.
+* **Onde a tela fica publicada (GitHub e GitHub Pages — Gratuito):** O GitHub guarda as versões do código, e o **GitHub Pages** (na versão gratuita) coloca o site no ar com cadeado de segurança (HTTPS). Ele serve apenas para exibir a tela no navegador — **não guarda nomes, faltas ou dados de colaboradores**.
+* **Onde os dados ficam guardados (Supabase — Versão Gratuita):** É o banco de dados na nuvem utilizado na **versão gratuita**. É ele que armazena o cadastro das equipes, setores, faltas do dia e prioridades das máquinas, atualiza a tela para todos que estiverem usando e só libera o acesso após login com e-mail `@ajover.com`.
 
 ---
 
-## Controles de Segurança e Conformidade com a LGPD
+## Segurança e Conformidade com a LGPD
 
-Para atender às diretrizes de segurança da informação e à **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**, as seguintes camadas de proteção foram implementadas:
+Para proteger as informações da empresa e atender à **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**, o sistema segue estas regras:
 
-* **Minimização de Dados (Art. 6º, III - LGPD):** O banco armazena apenas os dados estritamente necessários para a alocação operacional nos turnos (nome, cargo, equipe, setor, status operacional e datas de movimentação), sem coleta de documentos pessoais sensíveis (CPF, RG, endereço, telefone ou dados bancários).
-* **Controle de Acesso e Autenticação Fechada:**
-  * O cadastro público de novos usuários (*Sign Up*) está **desativado** no Supabase, exigindo confirmação de e-mail corporativo para ativação de contas provisionadas.
-  * Nenhuma tela ou dado operacional é carregado antes da validação da sessão autenticada do usuário, com verificação periódica automática de sessão ativa e domínio.
-* **Restrição por Domínio Corporativo (`@ajover.com`) e RLS no Banco:**
-  * Todas as tabelas (`colaboradores`, `setores`, `faltas` e `config_sim`) possuem **Row Level Security (RLS)** ativado.
-  * A validação de acesso no PostgreSQL é centralizada na função `public.is_ajover()`, que exige sessão autenticada (`authenticated`) e valida no token JWT que o e-mail pertence ao domínio `@ajover.com`.
-  * Políticas granulares (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) bloqueiam qualquer acesso anônimo ou de domínios externos diretamente no nível do banco de dados.
-* **Chave Pública de Cliente (`Publishable Key`):**
-  * O arquivo `nuvem.js` utiliza exclusivamente a chave pública (`sb_publishable_...`), projetada para operar no navegador em conjunto com as regras de RLS. Chaves administrativas (`service_role`) não existem no código-fonte.
-* **Sincronização e Rastreabilidade:**
-  * Alterações de quadro e apontamentos diários são gravados diretamente no banco protegido com sincronização em tempo real, eliminando o tráfego de planilhas locais desatualizadas com dados de colaboradores.
+* **Apenas dados essenciais (Minimização — LGPD):** O banco guarda somente o necessário para organizar os turnos (nome, cargo, equipe, setor, status e datas de movimentação). Nenhum documento sensível (como CPF, RG, endereço, telefone ou dados bancários) é coletado ou armazenado.
+* **Separação entre Tela e Dados:** Os arquivos públicos do site contêm apenas o visual e os cálculos; todas as informações de colaboradores ficam isoladas no banco de dados protegido.
+* **Acesso Fechado e Restrito a `@ajover.com`:**
+  * Ninguém consegue criar uma conta sozinho pelo site; apenas administradores autorizados habilitam novos acessos.
+  * Tanto a tela quanto o banco de dados bloqueiam qualquer tentativa de acesso sem login ou com e-mails fora do domínio `@ajover.com`.
+* **Fim das Planilhas Soltas:** Como as faltas e mudanças de turno ficam centralizadas no banco, evita-se o envio de arquivos e planilhas desatualizadas com listas de funcionários.
 
 ---
 
-## Guia de Migração para o Ecossistema Microsoft (Azure + Domínio Ajover)
+## Próximos Passos: Migração para a Nuvem Microsoft (Azure + Domínio Ajover)
 
-Como o projeto foi construído em **HTML, CSS e JavaScript puro** sobre **PostgreSQL**, ele não possui dependência proprietária (*vendor lock-in*) e pode ser migrado integralmente para a nuvem **Microsoft Azure** da Ajover com endereço corporativo próprio (ex.: `https://headcount.ajover.com`).
+Hoje o sistema roda sem custos usando GitHub Pages e Supabase. Caso a empresa deseje trazer toda a estrutura para dentro do ambiente oficial da **Microsoft (Azure)** da Ajover — usando um endereço interno como `https://headcount.ajover.com` — a transição é direta e não exige refazer o sistema:
 
-### Arquitetura Alvo na Microsoft
-
-| Camada | Solução Atual (Custo Zero) | Solução Corporativa Microsoft (Azure) |
+| O que é | Como funciona hoje (Custo Zero) | Como fica na Microsoft (Azure) |
 | :--- | :--- | :--- |
-| **Hospedagem Frontend** | GitHub Pages | **Azure Static Web Apps** (ou **Azure App Service**) |
-| **Domínio & Certificado SSL** | `*.github.io` | **Domínio Corporativo Ajover** (`headcount.ajover.com`) com SSL gerenciado |
-| **Autenticação / MFA** | Supabase Auth (`@ajover.com`) | **Microsoft Entra ID (Azure AD) — Single Sign-On (SSO)** |
-| **Banco de Dados** | Supabase (PostgreSQL) | **Azure Database for PostgreSQL** (Flexible Server) |
+| **Endereço do Site** | `cavera360jm-cmd.github.io/headcount` | **Domínio oficial Ajover** (`headcount.ajover.com`) |
+| **Hospedagem da Tela** | GitHub Pages | **Azure Static Web Apps** |
+| **Login e Senha** | E-mail `@ajover.com` + senha no Supabase | **Login único Microsoft 365 (SSO)** — usa a mesma senha e autenticação do e-mail/Teams da Ajover |
+| **Banco de Dados** | Supabase (PostgreSQL) | **Azure Database for PostgreSQL** |
 
-### Passo a Passo Técnico para Implantação pela TI
+**Principais ganhos ao migrar para o Azure:**
+* **Login único da empresa:** O colaborador entra com a própria conta Microsoft da Ajover, aproveitando as regras de segurança e dupla verificação já usadas pela TI.
+* **Bloqueio automático no desligamento:** Se um funcionário sair da empresa e a TI desativar o e-mail dele na Microsoft, o acesso ao sistema é cortado na mesma hora.
+* **Infraestrutura 100% interna:** Todo o banco de dados passa a ficar dentro da assinatura corporativa da Ajover.
 
-1. **Publicação no Azure Static Web Apps e Domínio Customizado (`headcount.ajover.com`):**
-   * Criar um recurso **Azure Static Web Apps** conectado ao repositório do projeto (ou via upload direto dos 6 arquivos estáticos).
-   * Na aba **Custom domains** do Azure Static Web Apps, adicionar o subdomínio desejado (ex.: `headcount.ajover.com`).
-   * No servidor DNS da Ajover, criar um registro **`CNAME`** apontando `headcount.ajover.com` para o hostname gerado pelo Azure (`*.azurestaticapps.net`). O Azure provisiona e renova o certificado HTTPS/TLS automaticamente.
-2. **Ativação do Login Corporativo (Microsoft Entra ID / SSO):**
-   * Registrar a aplicação no **Microsoft Entra ID → App registrations** (configurado como *Single Tenant — Ajover only*).
-   * Configurar a autenticação nativa do Azure Static Web Apps (`staticwebapp.config.json`) ou integrar via OAuth 2.0, garantindo que apenas colaboradores ativos no diretório `@ajover.com` com o MFA corporativo da empresa acessem a página.
-3. **Migração do Banco de Dados para o Azure:**
-   * Provisionar uma instância **Azure Database for PostgreSQL** na assinatura corporativa da Ajover.
-   * Exportar o schema (tabelas `colaboradores`, `setores`, `faltas`, `config_sim` e políticas RLS) e os dados do Supabase via `pg_dump` e restaurar no PostgreSQL do Azure, atualizando apenas o endpoint de conexão em `nuvem.js`.
-4. **Trilha de Auditoria (Opcional Recomendado):**
-   * Adicionar colunas `updated_by` e `updated_at` nas tabelas operacionais para registrar automaticamente qual usuário `@ajover.com` realizou cada alteração de turno ou cadastro.
+---
+
+## Parte Técnica (Referência para a Equipe de TI)
+
+* **Frontend:** HTML5, CSS3 e JavaScript puro (*Vanilla JS* ES6+), sem *bundlers*, frameworks externos ou dependências `npm`.
+* **Hospedagem Estática:** **GitHub Pages** sob TLS/HTTPS, sem processamento *server-side*.
+* **Banco de Dados e Autenticação:** **Supabase** (*Free Tier*) sobre **PostgreSQL** gerenciado, utilizando apenas a chave pública de cliente (`Publishable Key`) no frontend — chaves administrativas (`service_role`) não existem no código.
+* **Segurança no Banco (RLS):** Todas as tabelas (`colaboradores`, `setores`, `faltas` e `config_sim`) operam com **Row Level Security (RLS)** ativado e políticas granulares (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) vinculadas à função `public.is_ajover()`, que valida no token JWT (`authenticated`) o domínio `%@ajover.com`.
+* **Roteiro de Migração Azure:**
+  1. Publicar os arquivos estáticos no **Azure Static Web Apps** e apontar o subdomínio `headcount.ajover.com` via registro `CNAME` no DNS da Ajover (SSL gerenciado automaticamente).
+  2. Configurar um *App Registration* (*Single Tenant*) no **Microsoft Entra ID** para autenticação nativa OAuth 2.0 / OpenID Connect.
+  3. Exportar o schema (tabelas e políticas RLS) e os dados via `pg_dump` para uma instância **Azure Database for PostgreSQL**, atualizando o endpoint de conexão em `nuvem.js`.
+  4. *(Opcional)* Incluir colunas de auditoria (`updated_by`, `updated_at`) para trilha de alterações por usuário.
 
 ---
 
@@ -86,7 +65,7 @@ Como o projeto foi construído em **HTML, CSS e JavaScript puro** sobre **Postgr
 
 | Arquivo | Função |
 | :--- | :--- |
-| `index.html` | Estrutura visual do painel, abas de simulação e modal de gestão de equipes. |
-| `style.css` / `melhorias.css` | Folhas de estilo e responsividade da interface. |
-| `app.js` / `melhorias.js` | Regras de cálculo de capacidade, alocação por grupo de máquinas e renderização. |
-| `nuvem.js` | Camada de autenticação, leitura/gravação segura no banco e sincronização em tempo real. |
+| `index.html` | Estrutura visual do painel, abas de simulação e janela de gestão de equipes. |
+| `style.css` / `melhorias.css` | Aparência visual, cores e adaptação para diferentes tamanhos de tela. |
+| `app.js` / `melhorias.js` | Regras de cálculo de capacidade, distribuição nas máquinas e atualização da tela. |
+| `nuvem.js` | Controle de login, leitura/gravação segura no banco de dados e atualização em tempo real. |
