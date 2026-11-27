@@ -1,9 +1,10 @@
 /* ============================================================
    nuvem.js — liga o simulador ao Supabase
    Carregar DEPOIS do app.js e do melhorias.js.
-   Faz: login, carrega equipes do banco, compartilha faltas do dia,
-   prioridades/modos entre todos (tempo real) e agora também grava
-   no banco: adicionar, editar e excluir colaboradores e salvar setores.
+   Faz: login + MFA obrigatório, carrega equipes do banco,
+   compartilha faltas do dia, prioridades/modos entre todos
+   (tempo real) e grava no banco: adicionar, editar e excluir
+   colaboradores e salvar setores.
    ============================================================ */
 "use strict";
 const SUPABASE_URL = "https://igxhrsiqrgveqxxcytuf.supabase.co";
@@ -16,55 +17,129 @@ const SUPABASE_KEY = "sb_publishable_jz5XQpPvFUI42P-lxVWEyQ_zjLuS8g_";        //
   let remoto = new Set();
   const cfg = {};
 
-  /* ---------- Login ---------- */
-  async function garantirLogin() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    const email = (session.user?.email || "").toLowerCase();
-    if (!email.endsWith("@ajover.com")) {
-      await sb.auth.signOut();
-      alert("Acesso restrito a e-mails @ajover.com");
-      location.reload();
-      return;
-    }
-    return;
+  /* ---------- MFA (Autenticação em duas etapas - TOTP) ---------- */
+  async function garantirMfa() {
+    const { data: aal, error: aalErr } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalErr) throw aalErr;
+    if (aal.currentLevel === "aal2") return;
+
+    const { data: factors, error: listErr } = await sb.auth.mfa.listFactors();
+    if (listErr) throw listErr;
+    const verifiedTotp = (factors?.totp || []).find(f => f.status === "verified");
+
+    await new Promise((resolve, reject) => {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "position:fixed;inset:0;z-index:2050;display:grid;place-items:center;background:rgba(5,28,47,.82)";
+      wrap.innerHTML = `
+        <form style="background:#fff;padding:24px;border-radius:14px;display:grid;gap:12px;width:min(380px,92vw)">
+          <b style="font-size:16px;color:#173b59">Verificação em duas etapas (MFA)</b>
+          <div class="mfa-setup" style="display:grid;gap:8px;font-size:13px;color:#334155"></div>
+          <input name="code" type="text" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" required
+                 style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
+          <small class="mfa-err" style="color:#a23d3d"></small>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button type="button" class="btn mfa-cancel">Sair</button>
+            <button type="submit" class="btn btn-primary">Confirmar</button>
+          </div>
+        </form>`;
+      document.body.append(wrap);
+
+      let factorId = verifiedTotp?.id || null;
+      const setupBox = wrap.querySelector(".mfa-setup");
+      const errBox = wrap.querySelector(".mfa-err");
+
+      (async () => {
+        if (!factorId) {
+          const { data: enr, error: enrErr } = await sb.auth.mfa.enroll({
+            factorType: "totp",
+            friendlyName: "Headcount Ajover"
+          });
+          if (enrErr) { errBox.textContent = enrErr.message; return; }
+          factorId = enr.id;
+          setupBox.innerHTML = `
+            <span>Escaneie no app autenticador:</span>
+            <img src="${enr.totp.qr_code}" alt="QR Code MFA" style="width:180px;height:180px;margin:0 auto">
+            <code style="word-break:break-all;background:#f1f5f9;padding:6px;border-radius:6px">${enr.totp.secret}</code>`;
+        } else {
+          setupBox.innerHTML = `<span>Digite o código do seu aplicativo autenticador.</span>`;
+        }
+      })();
+
+      wrap.querySelector(".mfa-cancel").onclick = async () => {
+        await sb.auth.signOut();
+        wrap.remove();
+        reject(new Error("MFA cancelado"));
+      };
+
+      wrap.querySelector("form").onsubmit = async ev => {
+        ev.preventDefault();
+        errBox.textContent = "";
+        const code = wrap.querySelector('input[name="code"]').value.trim();
+        const { data: chal, error: chalErr } = await sb.auth.mfa.challenge({ factorId });
+        if (chalErr) { errBox.textContent = chalErr.message; return; }
+        const { error: verErr } = await sb.auth.mfa.verify({ factorId, challengeId: chal.id, code });
+        if (verErr) { errBox.textContent = "Código inválido ou expirado."; return; }
+        wrap.remove();
+        resolve();
+      };
+    });
   }
 
-  await new Promise(ok => {
-    const d = document.createElement("div");
-    d.style.cssText = "position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgba(5,28,47,.78)";
-    d.innerHTML = `
-      <form style="background:#fff;padding:26px;border-radius:14px;display:grid;gap:10px;width:min(340px,90vw)">
-        <b style="font-size:16px;color:#173b59">Entrar · Gestão de Mão de Obra</b>
-        <input name="e" type="email" placeholder="E-mail @ajover.com" required
-               style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
-        <input name="s" type="password" placeholder="Senha" required
-               style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
-        <small class="err" style="color:#a23d3d"></small>
-        <button class="btn btn-primary">Entrar</button>
-      </form>`;
-    document.body.append(d);
-
-    d.querySelector("form").onsubmit = async ev => {
-      ev.preventDefault();
-      const f = ev.target;
-      const email = f.e.value.trim().toLowerCase();
-
+  /* ---------- Login ---------- */
+  async function garantirLogin() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const email = (session.user?.email || "").toLowerCase();
       if (!email.endsWith("@ajover.com")) {
-        d.querySelector(".err").textContent = "Use um e-mail @ajover.com.";
+        await sb.auth.signOut();
+        alert("Acesso restrito a e-mails @ajover.com");
+        location.reload();
         return;
       }
+      await garantirMfa();
+      return;
+    }
 
-      const r = await sb.auth.signInWithPassword({ email, password: f.s.value });
-      if (r.error) {
-        d.querySelector(".err").textContent = "E-mail ou senha inválidos.";
-        return;
-      }
-      d.remove();
-      ok();
-    };
-  });
-}
+    await new Promise(ok => {
+      const d = document.createElement("div");
+      d.style.cssText = "position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgba(5,28,47,.78)";
+      d.innerHTML = `
+        <form style="background:#fff;padding:26px;border-radius:14px;display:grid;gap:10px;width:min(340px,90vw)">
+          <b style="font-size:16px;color:#173b59">Entrar · Gestão de Mão de Obra</b>
+          <input name="e" type="email" placeholder="E-mail @ajover.com" required
+                 style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
+          <input name="s" type="password" placeholder="Senha" required
+                 style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
+          <small class="err" style="color:#a23d3d"></small>
+          <button class="btn btn-primary">Entrar</button>
+        </form>`;
+      document.body.append(d);
+
+      d.querySelector("form").onsubmit = async ev => {
+        ev.preventDefault();
+        const f = ev.target;
+        const email = f.e.value.trim().toLowerCase();
+
+        if (!email.endsWith("@ajover.com")) {
+          d.querySelector(".err").textContent = "Use um e-mail @ajover.com.";
+          return;
+        }
+
+        const r = await sb.auth.signInWithPassword({ email, password: f.s.value });
+        if (r.error) {
+          d.querySelector(".err").textContent = "E-mail ou senha inválidos.";
+          return;
+        }
+        d.remove();
+        try {
+          await garantirMfa();
+          ok();
+        } catch {
+          location.reload();
+        }
+      };
+    });
+  }
 
   /* ---------- Leitura ---------- */
   async function carregarFaltas() {
@@ -286,17 +361,18 @@ const SUPABASE_KEY = "sb_publishable_jz5XQpPvFUI42P-lxVWEyQ_zjLuS8g_";        //
       });
     }
   });
-   // Verifica a cada 5 minutos se a sessão ainda é válida e do domínio correto
-setInterval(async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    location.reload();
-    return;
-  }
-  const email = session.user?.email?.toLowerCase() || "";
-  if (!email.endsWith("@ajover.com")) {
-    await sb.auth.signOut();
-    location.reload();
-  }
-}, 5 * 60 * 1000);
+
+  // Verifica a cada 5 minutos se a sessão ainda é válida e do domínio correto
+  setInterval(async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      location.reload();
+      return;
+    }
+    const email = session.user?.email?.toLowerCase() || "";
+    if (!email.endsWith("@ajover.com")) {
+      await sb.auth.signOut();
+      location.reload();
+    }
+  }, 5 * 60 * 1000);
 })();
