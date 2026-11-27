@@ -31,6 +31,7 @@ const SUPABASE_KEY = "sb_publishable_jz5XQpPvFUI42P-lxVWEyQ_zjLuS8g_";        //
       d.querySelector("form").onsubmit = async ev => {
         ev.preventDefault();
         const f = ev.target;
+         if (!f.e.value.trim().toLowerCase().endsWith("@ajover.com")) { d.querySelector(".err").textContent = "Use um e-mail @ajover.com."; return; }
         const r = await sb.auth.signInWithPassword({ email: f.e.value, password: f.s.value });
         if (r.error) { d.querySelector(".err").textContent = "E-mail ou senha inválidos."; return; }
         d.remove(); ok();
