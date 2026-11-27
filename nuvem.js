@@ -18,26 +18,53 @@ const SUPABASE_KEY = "sb_publishable_jz5XQpPvFUI42P-lxVWEyQ_zjLuS8g_";        //
 
   /* ---------- Login ---------- */
   async function garantirLogin() {
-    if ((await sb.auth.getSession()).data.session) return;
-    await new Promise(ok => {
-      const d = document.createElement("div");
-      d.style.cssText = "position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgba(5,28,47,.78)";
-      d.innerHTML = `<form style="background:#fff;padding:26px;border-radius:14px;display:grid;gap:10px;width:min(340px,90vw)">
-        <b style="font-size:16px;color:#173b59">Entrar · Gestão de Mão de Obra</b>
-        <input name="e" type="email" placeholder="E-mail" required style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
-        <input name="s" type="password" placeholder="Senha" required style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
-        <small class="err" style="color:#a23d3d"></small><button class="btn btn-primary">Entrar</button></form>`;
-      document.body.append(d);
-      d.querySelector("form").onsubmit = async ev => {
-        ev.preventDefault();
-        const f = ev.target;
-         if (!f.e.value.trim().toLowerCase().endsWith("@ajover.com")) { d.querySelector(".err").textContent = "Use um e-mail @ajover.com."; return; }
-        const r = await sb.auth.signInWithPassword({ email: f.e.value, password: f.s.value });
-        if (r.error) { d.querySelector(".err").textContent = "E-mail ou senha inválidos."; return; }
-        d.remove(); ok();
-      };
-    });
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const email = session.user?.email?.toLowerCase() || "";
+    if (!email.endsWith("@ajover.com")) {
+      await sb.auth.signOut();
+      alert("Acesso restrito a e-mails @ajover.com");
+      location.reload();
+      return;
+    }
+    return;
   }
+
+  await new Promise(ok => {
+    const d = document.createElement("div");
+    d.style.cssText = "position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgba(5,28,47,.78)";
+    d.innerHTML = `
+      <form style="background:#fff;padding:26px;border-radius:14px;display:grid;gap:10px;width:min(340px,90vw)">
+        <b style="font-size:16px;color:#173b59">Entrar · Gestão de Mão de Obra</b>
+        <input name="e" type="email" placeholder="E-mail @ajover.com" required 
+               style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
+        <input name="s" type="password" placeholder="Senha" required 
+               style="padding:10px;border:1px solid #d4dfe7;border-radius:8px">
+        <small class="err" style="color:#a23d3d"></small>
+        <button class="btn btn-primary">Entrar</button>
+      </form>`;
+    document.body.append(d);
+
+    d.querySelector("form").onsubmit = async ev => {
+      ev.preventDefault();
+      const f = ev.target;
+      const email = f.e.value.trim().toLowerCase();
+      
+      if (!email.endsWith("@ajover.com")) {
+        d.querySelector(".err").textContent = "Use um e-mail @ajover.com.";
+        return;
+      }
+
+      const r = await sb.auth.signInWithPassword({ email, password: f.s.value });
+      if (r.error) {
+        d.querySelector(".err").textContent = "E-mail ou senha inválidos.";
+        return;
+      }
+      d.remove();
+      ok();
+    };
+  });
+}
 
   /* ---------- Leitura ---------- */
   async function carregarFaltas() {
@@ -259,4 +286,17 @@ const SUPABASE_KEY = "sb_publishable_jz5XQpPvFUI42P-lxVWEyQ_zjLuS8g_";        //
       });
     }
   });
+   // Verifica a cada 5 minutos se a sessão ainda é válida e do domínio correto
+setInterval(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    location.reload();
+    return;
+  }
+  const email = session.user?.email?.toLowerCase() || "";
+  if (!email.endsWith("@ajover.com")) {
+    await sb.auth.signOut();
+    location.reload();
+  }
+}, 5 * 60 * 1000);
 })();
